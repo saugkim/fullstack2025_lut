@@ -1,1 +1,782 @@
 <h1>testing</h1>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pikmin Bloom Mushroom Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4 max-w-4xl">
+        <h1 class="text-2xl font-bold text-center mb-6">Pikmin Bloom Mushroom Calculator</h1>
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Calculate Mushroom Battle</h2>
+            <div id="mushroomForm" class="space-y-4">
+                <div class="bg-gray-50 shadow-sm p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700">Mushroom Size</label>
+                    <input type="hidden" id="mushroomSize" name="mushroomSize" value="Normal">
+                    <div id="mushroomSizeGrid" class="mt-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div class="mushroom-size p-2 border rounded-md text-center cursor-pointer hover:bg-gray-100 border-gray-300" data-size="Small"><p class="text-sm text-gray-700">Small</p></div>
+                        <div class="mushroom-size p-2 border rounded-md text-center cursor-pointer hover:bg-gray-100 bg-blue-100 border-blue-500" data-size="Normal"><p class="text-sm text-gray-700">Normal</p></div>
+                        <div class="mushroom-size p-2 border rounded-md text-center cursor-pointer hover:bg-gray-100 border-gray-300" data-size="Large"><p class="text-sm text-gray-700">Large</p></div>
+                        <div class="mushroom-size p-2 border rounded-md text-center cursor-pointer hover:bg-gray-100 border-gray-300" data-size="Giant"><p class="text-sm text-gray-700">Giant</p></div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 shadow-sm p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700">Mushroom Type</label>
+                    <input type="hidden" id="mushroomType" name="mushroomType">
+                    <div id="mushroomTypeGrid" class="mt-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
+                </div>
+                <div class="bg-gray-50 shadow-sm p-4 rounded-lg space-y-4">
+                    <div id="healthInputGroup">
+                        <label for="mushroomHealth" class="block text-sm font-medium text-gray-700">Mushroom Health Remaining</label>
+                        <input type="number" id="mushroomHealth" class="mt-1 block w-full p-2 border rounded-md" placeholder="e.g., 648000" value="648000">
+                    </div>
+                    <div id="strengthInputGroup">
+                        <label for="currentStrength" class="block text-sm font-medium text-gray-700">Current Total Player Strength</label>
+                        <input type="number" id="currentStrength" class="mt-1 block w-full p-2 border rounded-md" placeholder="e.g., 291" value="291">
+                    </div>
+                    <div id="currentEndTimeResult" class="mt-2 space-y-2"></div>
+                </div>
+                <div class="bg-gray-50 shadow-sm p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700">Calculation Mode</label>
+                    <div class="mt-2 space-y-4">
+                        <div>
+                            <input type="radio" id="targetTime" name="calcMode" value="targetTime" checked>
+                            <label for="targetTime" class="ml-2">Target End Date/Time</label>
+                            <div class="mt-1 grid grid-cols-2 sm:grid-cols-7 gap-2">
+                                <select id="targetMonth" class="p-2 border rounded-md">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8" selected>August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                                <select id="targetDay" class="p-2 border rounded-md"></select>
+                                <select id="targetYear" class="p-2 border rounded-md">
+                                    <option value="2025" selected>2025</option>
+                                    <option value="2026">2026</option>
+                                    <option value="2027">2027</option>
+                                    <option value="2028">2028</option>
+                                    <option value="2029">2029</option>
+                                    <option value="2030">2030</option>
+                                </select>
+                                <select id="targetHour" class="p-2 border rounded-md">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="10">10</option>
+                                    <option value="11">11</option>
+                                    <option value="12" selected>12</option>
+                                </select>
+                                <select id="targetMinute" class="p-2 border rounded-md"></select>
+                                <select id="targetSecond" class="p-2 border rounded-md"></select>
+                                <select id="targetAmPm" class="p-2 border rounded-md">
+                                    <option value="AM" selected>AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <div id="targetTimeResult" class="mt-2 space-y-2"></div>
+                        </div>
+                        <div>
+                            <input type="radio" id="addStrength" name="calcMode" value="addStrength">
+                            <label for="addStrength" class="ml-2">Additional Attack Power</label>
+                            <input type="number" id="additionalStrength" class="mt-1 block w-full p-2 border rounded-md" placeholder="e.g., 100" disabled>
+                            <div id="addStrengthResult" class="mt-2 space-y-2"></div>
+                        </div>
+                        <div>
+                            <input type="radio" id="starRating" name="calcMode" value="starRating">
+                            <label for="starRating" class="ml-2">Star Rating</label>
+                            <select id="starLevel" class="mt-1 block w-full p-2 border rounded-md" disabled>
+                                <option value="1">1 Star</option>
+                                <option value="2">2 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="4">4 Stars</option>
+                            </select>
+                            <div id="starRatingResult" class="mt-2 space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 flex space-x-2">
+                <button id="showHistory" class="w-full bg-gray-300 text-gray-700 p-2 rounded-md hover:bg-gray-400">Show Calculation History</button>
+                <button id="clearHistory" class="w-full bg-red-500 text-white p-2 rounded-md hover:bg-red-600">Clear History</button>
+            </div>
+            <div id="history" class="mt-2 hidden space-y-2"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Edit Mushroom Thresholds</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full table-auto border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Size</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Type</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Health</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">2 Stars</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">3 Stars</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">4 Stars</th>
+                        </tr>
+                    </thead>
+                    <tbody id="thresholdTable"></tbody>
+                </table>
+            </div>
+            <p class="mt-4 text-sm text-gray-600">Note: Updated data is saved to your browser's local storage.</p>
+            <button id="saveThresholds" class="w-full mt-4 bg-green-500 text-white p-2 rounded-md hover:bg-green-600">Save Changes</button>
+            <div class="mt-4 space-y-2">
+                <button id="exportThresholds" class="w-full bg-purple-500 text-white p-2 rounded-md hover:bg-purple-600">Export Thresholds to Clipboard</button>
+                <div>
+                    <label for="importThresholds" class="block text-sm font-medium text-gray-700">Import Thresholds</label>
+                    <textarea id="importThresholds" class="mt-1 block w-full p-2 border rounded-md" placeholder="Paste JSON here"></textarea>
+                    <button id="importButton" class="w-full bg-purple-500 text-white p-2 rounded-md hover:bg-purple-600 mt-2">Import from Clipboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Mushroom data with health and thresholds
+        const mushroomData = {
+            Small: {
+                Red: { health: 87400, thresholds: { 2: 525, 3: 1080, 4: 2240 } },
+                Yellow: { health: 84200, thresholds: { 2: 500, 3: 1040, 4: 2170 } },
+                Blue: { health: 84200, thresholds: { 2: 500, 3: 1040, 4: 2170 } },
+                Purple: { health: 93900, thresholds: { 2: 575, 3: 1160, 4: 2380 } },
+                White: { health: 81000, thresholds: { 2: 475, 3: 1000, 4: 2100 } },
+                Pink: { health: 81000, thresholds: { 2: 475, 3: 1000, 4: 2100 } },
+                Gray: { health: 90700, thresholds: { 2: 550, 3: 1120, 4: 2310 } }
+            },
+            Normal: {
+                Red: { health: 670600, thresholds: { 2: 1890, 3: 3240, 4: 4480 } },
+                Yellow: { health: 645800, thresholds: { 2: 1800, 3: 3120, 4: 4340 } },
+                Blue: { health: 645800, thresholds: { 2: 1800, 3: 3120, 4: 4340 } },
+                Purple: { health: 720300, thresholds: { 2: 2070, 3: 3480, 4: 4760 } },
+                White: { health: 621000, thresholds: { 2: 1710, 3: 3000, 4: 4200 } },
+                Pink: { health: 621000, thresholds: { 2: 1710, 3: 3000, 4: 4200 } },
+                Gray: { health: 695500, thresholds: { 2: 1980, 3: 3360, 4: 4620 } },
+                Fire: { health: 3850200, thresholds: { 2: 9810, 3: 13800, 4: 16800 } },
+                Water: { health: 3816700, thresholds: { 2: 9720, 3: 13680, 4: 16660 } },
+                Crystal: { health: 3883600, thresholds: { 2: 9900, 3: 13920, 4: 16940 } },
+                Electric: { health: 3816700, thresholds: { 2: 9720, 3: 13680, 4: 16600 } },
+                Poisonous: { health: 3783200, thresholds: { 2: 9630, 3: 13560, 4: 16520 } },
+                Halloween: { health: 648000, thresholds: { 2: 6720, 3: 24588, 4: 65520 } },
+                Verdant: { health: 648000, thresholds: { 2: 4520, 3: 16368, 4: 58520 } },
+                Mysterious: { health: 648000, thresholds: { 2: 4720, 3: 15240, 4: 58520 } },
+                Magnificent: { health: 648000, thresholds: { 2: 5720, 3: 23352, 4: 58520 } },
+                Lavish: { health: 648000, thresholds: { 2: 5720, 3: 23352, 4: 58520 } },
+                Bizarre: { health: 648000, thresholds: { 2: 7120, 3: 22260, 4: 72520 } },
+                Seafoam: { health: 648000, thresholds: { 2: 5720, 3: 23352, 4: 58520 } },
+                Brilliant: { health: 648000, thresholds: { 2: 5720, 3: 23352, 4: 58520 } }
+            },
+            Large: {
+                Red: { health: 2916000, thresholds: { 2: 2520, 3: 4050, 4: 5600 } },
+                Yellow: { health: 2808000, thresholds: { 2: 2400, 3: 3900, 4: 5425 } },
+                Blue: { health: 2808000, thresholds: { 2: 2400, 3: 3900, 4: 5425 } },
+                Purple: { health: 3132000, thresholds: { 2: 2760, 3: 4350, 4: 5950 } },
+                White: { health: 2700000, thresholds: { 2: 2280, 3: 3750, 4: 5250 } },
+                Pink: { health: 2700000, thresholds: { 2: 2280, 3: 3650, 4: 5250 } },
+                Gray: { health: 3024000, thresholds: { 2: 2640, 3: 4200, 4: 5425 } },
+                Fire: { health: 13662000, thresholds: { 2: 13080, 3: 17250, 4: 21000 } },
+                Water: { health: 13543200, thresholds: { 2: 12960, 3: 17100, 4: 20875 } },
+                Crystal: { health: 13780800, thresholds: { 2: 13200, 3: 17400, 4: 21175 } },
+                Electric: { health: 13543200, thresholds: { 2: 12960, 3: 17100, 4: 20875 } },
+                Poisonous: { health: 13424400, thresholds: { 2: 12840, 3: 16950, 4: 20650 } }
+            },
+            Giant: {
+                Red: { health: 3499200, thresholds: { 2: 5744, 3: 11488, 4: 22976 } },
+                Yellow: { health: 3369600, thresholds: { 2: 5688, 3: 11367, 4: 22752 } },
+                Blue: { health: 3369600, thresholds: { 2: 5688, 3: 11367, 4: 22752 } },
+                Purple: { health: 3758400, thresholds: { 2: 5856, 3: 11712, 4: 23424 } },
+                White: { health: 3240000, thresholds: { 2: 5632, 3: 11264, 4: 22528 } },
+                Pink: { health: 3240000, thresholds: { 2: 5632, 3: 11264, 4: 22528 } },
+                Gray: { health: 3628800, thresholds: { 2: 5800, 3: 11600, 4: 23200 } },
+                Halloween: { health: 2880000, thresholds: { 2: 23520, 3: 49176, 4: 131040 } },
+                Verdant: { health: 2880000, thresholds: { 2: 15820, 3: 32736, 4: 117040 } },
+                Mysterious: { health: 2880000, thresholds: { 2: 16520, 3: 30480, 4: 117040 } },
+                Magnificent: { health: 2880000, thresholds: { 2: 20020, 3: 46704, 4: 117040 } },
+                Lavish: { health: 2880000, thresholds: { 2: 20020, 3: 46704, 4: 117040 } },
+                Bizarre: { health: 2880000, thresholds: { 2: 24920, 3: 44520, 4: 145040 } },
+                Seafoam: { health: 2880000, thresholds: { 2: 20020, 3: 46704, 4: 117040 } },
+                Brilliant: { health: 2880000, thresholds: { 2: 20020, 3: 46704, 4: 117040 } }
+            }
+        };
+
+        // Mushroom images
+        const mushroomImages = {
+            Red: 'https://pikmin.wiki.gallery/images/thumb/9/9a/Red_mushroom_icon.png/44px-Red_mushroom_icon.png',
+            Yellow: 'https://pikmin.wiki.gallery/images/thumb/a/a5/Yellow_mushroom_icon.png/44px-Yellow_mushroom_icon.png',
+            Blue: 'https://pikmin.wiki.gallery/images/thumb/8/81/Blue_mushroom_icon.png/44px-Blue_mushroom_icon.png',
+            Purple: 'https://pikmin.wiki.gallery/images/thumb/f/f5/Purple_mushroom_icon.png/45px-Purple_mushroom_icon.png',
+            White: 'https://pikmin.wiki.gallery/images/thumb/9/91/White_mushroom_icon.png/45px-White_mushroom_icon.png',
+            Pink: 'https://pikmin.wiki.gallery/images/thumb/6/62/Pink_mushroom_icon.png/44px-Pink_mushroom_icon.png',
+            Gray: 'https://pikmin.wiki.gallery/images/thumb/4/45/Gray_mushroom_icon.png/45px-Gray_mushroom_icon.png',
+            Fire: 'https://pikmin.wiki.gallery/images/thumb/d/d4/Fire_mushroom_icon.png/48px-Fire_mushroom_icon.png',
+            Water: 'https://pikmin.wiki.gallery/images/thumb/3/33/Water_mushroom_icon.png/48px-Water_mushroom_icon.png',
+            Crystal: 'https://pikmin.wiki.gallery/images/thumb/d/d0/Crystal_mushroom_icon.png/38px-Crystal_mushroom_icon.png',
+            Electric: 'https://pikmin.wiki.gallery/images/thumb/4/48/Electric_mushroom_icon.png/48px-Electric_mushroom_icon.png',
+            Poisonous: 'https://pikmin.wiki.gallery/images/thumb/b/b7/Poisonous_mushroom_icon.png/47px-Poisonous_mushroom_icon.png',
+            Halloween: 'https://pikmin.wiki.gallery/images/d/df/Halloween_Mushroom_icon.png',
+            Verdant: 'https://pikmin.wiki.gallery/images/8/83/Verdant_Mushroom_icon.png',
+            Mysterious: 'https://pikmin.wiki.gallery/images/4/42/Mysterious_Mushroom_icon.png',
+            Magnificent: 'https://pikmin.wiki.gallery/images/e/e9/Magnificent_Mushroom_icon.png',
+            Lavish: 'https://pikmin.wiki.gallery/images/5/50/Lavish_Mushroom_icon.png',
+            Bizarre: 'https://pikmin.wiki.gallery/images/f/f1/Bizarre_Mushroom_icon.png',
+            Seafoam: 'https://pikmin.wiki.gallery/images/0/02/Seafoam_Mushroom_icon.png',
+            Brilliant: 'https://pikmin.wiki.gallery/images/7/7a/Brilliant_Mushroom_icon.png'
+        };
+
+        // Load or initialize thresholds from local storage
+        let starThresholds = JSON.parse(localStorage.getItem('mushroomThresholds')) || mushroomData;
+
+        // Variables for tracking health and strength
+        let lastHealth = parseFloat(document.getElementById('mushroomHealth').value) || 648000;
+        let lastStrength = parseFloat(document.getElementById('currentStrength').value) || 291;
+        let lastModifiedTime = new Date();
+        let isHealthFocused = false;
+        let isStrengthFocused = false;
+
+        // Cache DOM elements
+        const elements = {
+            sizeInput: document.getElementById('mushroomSize'),
+            typeInput: document.getElementById('mushroomType'),
+            sizeGrid: document.getElementById('mushroomSizeGrid'),
+            typeGrid: document.getElementById('mushroomTypeGrid'),
+            healthInput: document.getElementById('mushroomHealth'),
+            strengthInput: document.getElementById('currentStrength'),
+            currentEndTimeResult: document.getElementById('currentEndTimeResult'),
+            targetTimeResult: document.getElementById('targetTimeResult'),
+            addStrengthResult: document.getElementById('addStrengthResult'),
+            starRatingResult: document.getElementById('starRatingResult'),
+            healthInputGroup: document.getElementById('healthInputGroup'),
+            strengthInputGroup: document.getElementById('strengthInputGroup'),
+            targetMonth: document.getElementById('targetMonth'),
+            targetDay: document.getElementById('targetDay'),
+            targetYear: document.getElementById('targetYear'),
+            targetHour: document.getElementById('targetHour'),
+            targetMinute: document.getElementById('targetMinute'),
+            targetSecond: document.getElementById('targetSecond'),
+            targetAmPm: document.getElementById('targetAmPm'),
+            additionalStrength: document.getElementById('additionalStrength'),
+            starLevel: document.getElementById('starLevel'),
+            thresholdTable: document.getElementById('thresholdTable'),
+            history: document.getElementById('history'),
+            showHistory: document.getElementById('showHistory'),
+            clearHistory: document.getElementById('clearHistory'),
+            saveThresholds: document.getElementById('saveThresholds'),
+            exportThresholds: document.getElementById('exportThresholds'),
+            importButton: document.getElementById('importButton'),
+            importThresholds: document.getElementById('importThresholds')
+        };
+
+        // Populate size and type selectors
+        function populateMushroomSelectors() {
+            function updateSizeGrid(defaultSize = 'Normal') {
+                elements.sizeInput.value = defaultSize;
+                elements.sizeGrid.querySelectorAll('.mushroom-size').forEach(item => {
+                    item.classList.toggle('bg-blue-100', item.dataset.size === defaultSize);
+                    item.classList.toggle('border-blue-500', item.dataset.size === defaultSize);
+                    item.classList.toggle('border-gray-300', item.dataset.size !== defaultSize);
+                });
+                updateTypeGrid(defaultSize);
+            }
+
+            function updateTypeGrid(size, defaultType = size === 'Normal' ? 'Seafoam' : 'Red') {
+                const types = Object.keys(mushroomData[size]).filter(type => mushroomImages[type]);
+                elements.typeGrid.innerHTML = types.map(type => `
+                    <div class="mushroom-type p-2 border rounded-md text-center cursor-pointer hover:bg-gray-100 ${type === defaultType ? 'bg-blue-100 border-blue-500' : 'border-gray-300'}" data-type="${type}">
+                        <img src="${mushroomImages[type]}" alt="${type} mushroom" class="mx-auto h-12 w-auto">
+                        <p class="text-sm text-gray-700 mt-1">${type}</p>
+                    </div>
+                `).join('');
+                elements.typeInput.value = defaultType;
+                updateHealthInput();
+
+                elements.typeGrid.querySelectorAll('.mushroom-type').forEach(item => {
+                    item.addEventListener('click', () => {
+                        elements.typeGrid.querySelectorAll('.mushroom-type').forEach(el => {
+                            el.classList.remove('bg-blue-100', 'border-blue-500');
+                            el.classList.add('border-gray-300');
+                        });
+                        item.classList.remove('border-gray-300');
+                        item.classList.add('bg-blue-100', 'border-blue-500');
+                        elements.typeInput.value = item.dataset.type;
+                        updateHealthInput();
+                        updateCalculations();
+                    });
+                });
+            }
+
+            elements.sizeGrid.querySelectorAll('.mushroom-size').forEach(item => {
+                item.addEventListener('click', () => {
+                    elements.sizeInput.value = item.dataset.size;
+                    updateSizeGrid(item.dataset.size);
+                    updateCalculations();
+                });
+            });
+
+            updateSizeGrid();
+        }
+
+        // Update days dropdown based on month and year
+        function updateDays(month, year, dropdown) {
+            const daysInMonth = new Date(year, month, 0).getDate();
+            dropdown.innerHTML = Array.from({ length: daysInMonth }, (_, i) => 
+                `<option value="${i + 1}" ${i + 1 === 1 ? 'selected' : ''}>${i + 1}</option>`
+            ).join('');
+        }
+
+        // Populate custom date picker for target time
+        function populateDatePicker() {
+            const minuteDropdown = elements.targetMinute;
+            const secondDropdown = elements.targetSecond;
+            minuteDropdown.innerHTML = Array.from({ length: 60 }, (_, i) => 
+                `<option value="${i}" ${i === 0 ? 'selected' : ''}>${i.toString().padStart(2, '0')}</option>`
+            ).join('');
+            secondDropdown.innerHTML = minuteDropdown.innerHTML;
+            updateDays(8, 2025, elements.targetDay);
+
+            elements.targetMonth.addEventListener('change', () => {
+                updateDays(parseInt(elements.targetMonth.value), parseInt(elements.targetYear.value), elements.targetDay);
+                updateCalculations();
+            });
+            elements.targetYear.addEventListener('change', () => {
+                updateDays(parseInt(elements.targetMonth.value), parseInt(elements.targetYear.value), elements.targetDay);
+                updateCalculations();
+            });
+        }
+
+        // Update health input based on selected size and type
+        function updateHealthInput() {
+            const size = elements.sizeInput.value;
+            const type = elements.typeInput.value;
+            const health = starThresholds[size][type]?.health || 0;
+            elements.healthInput.value = health;
+            lastHealth = health;
+            lastModifiedTime = new Date();
+            clearInputErrors();
+        }
+
+        // Save thresholds to local storage
+        function saveThresholds() {
+            localStorage.setItem('mushroomThresholds', JSON.stringify(starThresholds));
+        }
+
+        // Enable/disable inputs based on calculation mode
+        function setupCalcModeListeners() {
+            document.querySelectorAll('input[name="calcMode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const isTargetTime = radio.value === 'targetTime';
+                    elements.targetMonth.disabled = !isTargetTime;
+                    elements.targetDay.disabled = !isTargetTime;
+                    elements.targetYear.disabled = !isTargetTime;
+                    elements.targetHour.disabled = !isTargetTime;
+                    elements.targetMinute.disabled = !isTargetTime;
+                    elements.targetSecond.disabled = !isTargetTime;
+                    elements.targetAmPm.disabled = !isTargetTime;
+                    elements.additionalStrength.disabled = radio.value !== 'addStrength';
+                    elements.starLevel.disabled = radio.value !== 'starRating';
+                    updateCalculations();
+                });
+            });
+        }
+
+        // Clear input error styling
+        function clearInputErrors() {
+            elements.healthInputGroup.classList.remove('border', 'border-red-500', 'p-2', 'rounded-md');
+            elements.strengthInputGroup.classList.remove('border', 'border-red-500', 'p-2', 'rounded-md');
+        }
+
+        // Apply error styling to inputs
+        function applyInputErrors() {
+            elements.healthInputGroup.classList.add('border', 'border-red-500', 'p-2', 'rounded-md');
+            elements.strengthInputGroup.classList.add('border', 'border-red-500', 'p-2', 'rounded-md');
+        }
+
+        // Format seconds to days, hours, minutes, seconds
+        function formatTime(seconds) {
+            if (seconds <= 0) return '0d 0h 0m 0s';
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${days}d ${hours}h ${minutes}m ${secs}s`;
+        }
+
+        // Calculate star rating
+        function calculateStarRating(totalStrength, thresholds) {
+            if (totalStrength >= thresholds[4]) return 4;
+            if (totalStrength >= thresholds[3]) return 3;
+            if (totalStrength >= thresholds[2]) return 2;
+            return 1;
+        }
+
+        // Calculate attack per player
+        function calculateAttackPerPlayer(additionalStrength) {
+            return {
+                2: Math.ceil(additionalStrength / 2),
+                3: Math.ceil(additionalStrength / 3),
+                4: Math.ceil(additionalStrength / 4)
+            };
+        }
+
+        // Load history from local storage
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('mushroomCalcHistory') || '[]');
+            elements.history.innerHTML = history.length === 0 
+                ? '<p class="text-gray-600">No calculations saved.</p>'
+                : history.map((entry, index) => `
+                    <div class="p-2 bg-gray-100 rounded-md">
+                        <p><strong>Calculation ${index + 1}</strong>: ${entry.result}</p>
+                        <p class="text-sm text-gray-600">Mushroom: ${entry.mushroomSize} ${entry.mushroomType}, Health: ${entry.health}, Strength: ${entry.strength}, Recorded At: ${entry.startTime}</p>
+                    </div>
+                `).join('');
+        }
+
+        // Save calculation to local storage
+        function saveCalculation(result, mushroomSize, mushroomType, health, strength, startTime) {
+            const history = JSON.parse(localStorage.getItem('mushroomCalcHistory') || '[]');
+            history.push({ result, mushroomSize, mushroomType, health, strength, startTime });
+            localStorage.setItem('mushroomCalcHistory', JSON.stringify(history.slice(-10)));
+        }
+
+        // Update calculations
+        function updateCalculations() {
+            clearInputErrors();
+            const size = elements.sizeInput.value;
+            const type = elements.typeInput.value;
+            const health = parseFloat(elements.healthInput.value);
+            const currentStrength = parseFloat(elements.strengthInput.value);
+            const calcMode = document.querySelector('input[name="calcMode"]:checked').value;
+
+            // Validate inputs
+            if (isNaN(health) || isNaN(currentStrength) || health <= 0 || currentStrength <= 0) {
+                elements.currentEndTimeResult.innerHTML = '<p class="text-red-600">Please provide valid positive health and strength values.</p>';
+                elements.targetTimeResult.innerHTML = '';
+                elements.addStrengthResult.innerHTML = '';
+                elements.starRatingResult.innerHTML = '';
+                applyInputErrors();
+                return;
+            }
+
+            const now = new Date();
+            const elapsedSeconds = (now - lastModifiedTime) / 1000;
+            const initialHealth = lastHealth + (lastStrength * (elapsedSeconds / 100));
+            const timeSeconds = (health / currentStrength) * 100;
+            const currentEndTime = new Date(now.getTime() + timeSeconds * 1000);
+            const remainingTimeSeconds = Math.max(0, timeSeconds);
+            const thresholds = starThresholds[size][type]?.thresholds || { 2: 0, 3: 0, 4: 0 };
+            const bonusPower = currentStrength * 0.15;
+            const totalEffectiveStrength = currentStrength + bonusPower;
+            const starRating = calculateStarRating(totalEffectiveStrength, thresholds);
+
+            elements.currentEndTimeResult.innerHTML = `
+                <p><strong>Current End Time:</strong> ${currentEndTime.toLocaleString()} (${formatTime(remainingTimeSeconds)})</p>
+                <p><strong>Current Star Rating:</strong> ${starRating} stars (with ~${Math.ceil(bonusPower)} bonus power)</p>
+            `;
+
+            if (calcMode === 'targetTime') {
+                const month = parseInt(elements.targetMonth.value);
+                const day = parseInt(elements.targetDay.value);
+                const year = parseInt(elements.targetYear.value);
+                let hour = parseInt(elements.targetHour.value);
+                const minute = parseInt(elements.targetMinute.value);
+                const second = parseInt(elements.targetSecond.value);
+                const amPm = elements.targetAmPm.value;
+
+                if (amPm === 'PM' && hour !== 12) hour += 12;
+                if (amPm === 'AM' && hour === 12) hour = 0;
+
+                const targetDate = new Date(year, month - 1, day, hour, minute, second);
+                const daysInMonth = new Date(year, month, 0).getDate();
+                if (isNaN(targetDate.getTime()) || day > daysInMonth || targetDate <= now) {
+                    elements.targetTimeResult.innerHTML = '<p class="text-red-600">Please select a valid future date.</p>';
+                    elements.addStrengthResult.innerHTML = '';
+                    elements.starRatingResult.innerHTML = '';
+                    return;
+                }
+
+                const targetTimeSeconds = (targetDate - now) / 1000;
+                const requiredPlayerAttack = Math.ceil((initialHealth / targetTimeSeconds) * 100);
+                const requiredBonus = Math.ceil(requiredPlayerAttack * 0.15);
+                const totalStrength = requiredPlayerAttack + requiredBonus;
+                const additionalStrength = requiredPlayerAttack - currentStrength;
+                const newStarRating = calculateStarRating(totalStrength, thresholds);
+                const attackPerPlayer = calculateAttackPerPlayer(additionalStrength);
+
+                elements.additionalStrength.value = Math.ceil(additionalStrength);
+                elements.starLevel.value = newStarRating;
+                elements.targetTimeResult.innerHTML = `<p><strong>Time Left:</strong> ${formatTime(targetTimeSeconds)}</p>`;
+                elements.addStrengthResult.innerHTML = `
+                    <p><strong>Total Strength:</strong> ${Math.ceil(totalStrength).toLocaleString()} (~${requiredPlayerAttack.toLocaleString()} player attack + ~${requiredBonus.toLocaleString()} bonus)</p>
+                    <p><strong>Attack Per Player:</strong> /2=${attackPerPlayer[2]} /3=${attackPerPlayer[3]} /4=${attackPerPlayer[4]}</p>
+                `;
+                elements.starRatingResult.innerHTML = `<p><strong>Additional Strength Needed:</strong> ${Math.ceil(additionalStrength)} for ${newStarRating} stars</p>`;
+            } else if (calcMode === 'addStrength') {
+                const additionalStrength = parseFloat(elements.additionalStrength.value) || 0;
+                if (isNaN(additionalStrength) || additionalStrength < 0) {
+                    elements.addStrengthResult.innerHTML = '<p class="text-red-600">Please enter a valid additional strength.</p>';
+                    elements.targetTimeResult.innerHTML = '';
+                    elements.starRatingResult.innerHTML = '';
+                    return;
+                }
+
+                const newPlayerAttack = currentStrength + additionalStrength;
+                const newBonus = Math.ceil(newPlayerAttack * 0.15);
+                const totalStrength = newPlayerAttack + newBonus;
+                const newTimeSeconds = (initialHealth / newPlayerAttack) * 100;
+                const newEndTime = new Date(now.getTime() + newTimeSeconds * 1000);
+                const newRemainingTimeSeconds = Math.max(0, newTimeSeconds);
+                const newStarRating = calculateStarRating(totalStrength, thresholds);
+                const attackPerPlayer = calculateAttackPerPlayer(additionalStrength);
+
+                elements.starLevel.value = newStarRating;
+                updateTargetTimeInputs(newEndTime);
+                elements.addStrengthResult.innerHTML = `
+                    <p><strong>Total Strength:</strong> ${Math.ceil(totalStrength).toLocaleString()} (~${Math.ceil(newPlayerAttack).toLocaleString()} player attack + ~${newBonus.toLocaleString()} bonus)</p>
+                    <p><strong>Attack Per Player:</strong> /2=${attackPerPlayer[2]} /3=${attackPerPlayer[3]} /4=${attackPerPlayer[4]}</p>
+                `;
+                elements.targetTimeResult.innerHTML = `<p><strong>Time Left:</strong> ${formatTime(newRemainingTimeSeconds)}</p>`;
+                elements.starRatingResult.innerHTML = `<p><strong>Additional Strength Needed:</strong> ${Math.ceil(additionalStrength)} for ${newStarRating} stars</p>`;
+            } else if (calcMode === 'starRating') {
+                const targetStar = parseInt(elements.starLevel.value);
+                const targetThreshold = thresholds[targetStar] || 0;
+                const requiredPlayerAttack = Math.ceil(targetThreshold / 1.15);
+                const requiredBonus = Math.ceil(requiredPlayerAttack * 0.15);
+                const totalStrength = requiredPlayerAttack + requiredBonus;
+                const additionalStrength = requiredPlayerAttack - currentStrength;
+                const newTimeSeconds = (initialHealth / requiredPlayerAttack) * 100;
+                const newEndTime = new Date(now.getTime() + newTimeSeconds * 1000);
+                const newRemainingTimeSeconds = Math.max(0, newTimeSeconds);
+                const attackPerPlayer = calculateAttackPerPlayer(additionalStrength);
+
+                elements.additionalStrength.value = Math.ceil(additionalStrength);
+                updateTargetTimeInputs(newEndTime);
+                elements.starRatingResult.innerHTML = `<p><strong>Additional Strength Needed:</strong> ${Math.ceil(additionalStrength)} for ${targetStar} stars</p>`;
+                elements.addStrengthResult.innerHTML = `
+                    <p><strong>Total Strength:</strong> ${Math.ceil(totalStrength).toLocaleString()} (~${requiredPlayerAttack.toLocaleString()} player attack + ~${requiredBonus.toLocaleString()} bonus)</p>
+                    <p><strong>Attack Per Player:</strong> /2=${attackPerPlayer[2]} /3=${attackPerPlayer[3]} /4=${attackPerPlayer[4]}</p>
+                `;
+                elements.targetTimeResult.innerHTML = `<p><strong>Time Left:</strong> ${formatTime(newRemainingTimeSeconds)}</p>`;
+            }
+
+            saveCalculation(
+                `<div>${elements.currentEndTimeResult.innerHTML}<br>${elements.targetTimeResult.innerHTML}<br>${elements.addStrengthResult.innerHTML}<br>${elements.starRatingResult.innerHTML}</div>`,
+                size,
+                type,
+                health.toLocaleString(),
+                currentStrength,
+                now.toLocaleString()
+            );
+        }
+
+        // Update target time inputs based on a given date
+        function updateTargetTimeInputs(targetDate) {
+            elements.targetMonth.value = targetDate.getMonth() + 1;
+            updateDays(targetDate.getMonth() + 1, targetDate.getFullYear(), elements.targetDay);
+            elements.targetDay.value = targetDate.getDate();
+            elements.targetYear.value = targetDate.getFullYear();
+            let hour = targetDate.getHours();
+            const amPm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12 || 12;
+            elements.targetHour.value = hour;
+            elements.targetMinute.value = targetDate.getMinutes();
+            elements.targetSecond.value = targetDate.getSeconds();
+            elements.targetAmPm.value = amPm;
+        }
+
+        // Update health every second
+        function startHealthUpdateInterval() {
+            setInterval(() => {
+                if (!isHealthFocused && !isStrengthFocused) {
+                    const now = new Date();
+                    const elapsedSeconds = (now - lastModifiedTime) / 1000;
+                    lastHealth -= (lastStrength / 100) * elapsedSeconds;
+                    if (lastHealth < 0) lastHealth = 0;
+                    elements.healthInput.value = Math.floor(lastHealth);
+                    lastModifiedTime = now;
+                    updateCalculations();
+                }
+            }, 1000);
+        }
+
+        // Populate threshold table
+        function populateThresholdTable() {
+            elements.thresholdTable.innerHTML = Object.keys(starThresholds).flatMap(size => 
+                Object.keys(starThresholds[size]).map(type => {
+                    const data = starThresholds[size][type];
+                    const thresholds = data.thresholds || { 2: 0, 3: 0, 4: 0 };
+                    return `
+                        <tr>
+                            <td class="px-4 py-2 border">${size}</td>
+                            <td class="px-4 py-2 border">${type}</td>
+                            <td class="px-4 py-2 border"><input type="number" class="w-full p-1 border rounded" data-size="${size}" data-type="${type}" data-field="health" value="${data.health}"></td>
+                            <td class="px-4 py-2 border"><input type="number" class="w-full p-1 border rounded" data-size="${size}" data-type="${type}" data-field="star2" value="${thresholds[2]}"></td>
+                            <td class="px-4 py-2 border"><input type="number" class="w-full p-1 border rounded" data-size="${size}" data-type="${type}" data-field="star3" value="${thresholds[3]}"></td>
+                            <td class="px-4 py-2 border"><input type="number" class="w-full p-1 border rounded" data-size="${size}" data-type="${type}" data-field="star4" value="${thresholds[4]}"></td>
+                        </tr>
+                    `;
+                })
+            ).join('');
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            elements.clearHistory.addEventListener('click', () => {
+                localStorage.removeItem('mushroomCalcHistory');
+                loadHistory();
+                alert('Calculation history cleared!');
+            });
+
+            elements.showHistory.addEventListener('click', () => {
+                elements.history.classList.toggle('hidden');
+                if (!elements.history.classList.contains('hidden')) loadHistory();
+            });
+
+            elements.saveThresholds.addEventListener('click', () => {
+                const inputs = elements.thresholdTable.querySelectorAll('input');
+                let valid = true;
+                inputs.forEach(input => {
+                    const size = input.dataset.size;
+                    const type = input.dataset.type;
+                    const field = input.dataset.field;
+                    const value = parseInt(input.value);
+                    if (isNaN(value) || value < 0) {
+                        valid = false;
+                        input.classList.add('border', 'border-red-500');
+                    } else {
+                        input.classList.remove('border', 'border-red-500');
+                        if (field === 'health') {
+                            starThresholds[size][type].health = value;
+                        } else {
+                            starThresholds[size][type].thresholds[field.replace('star', '')] = value;
+                        }
+                    }
+                });
+                if (valid) {
+                    saveThresholds();
+                    updateHealthInput();
+                    alert('Thresholds updated successfully!');
+                } else {
+                    alert('Please enter valid numbers for all fields.');
+                }
+            });
+
+            elements.exportThresholds.addEventListener('click', () => {
+                const thresholdsJSON = JSON.stringify(starThresholds, null, 2);
+                navigator.clipboard.writeText(thresholdsJSON).then(() => {
+                    alert('Thresholds copied to clipboard!');
+                }).catch(() => {
+                    alert('Failed to copy to clipboard.');
+                });
+            });
+
+            elements.importButton.addEventListener('click', () => {
+                const importText = elements.importThresholds.value;
+                try {
+                    const importedThresholds = JSON.parse(importText);
+                    starThresholds = { ...mushroomData, ...importedThresholds };
+                    saveThresholds();
+                    updateHealthInput();
+                    populateThresholdTable();
+                    updateCalculations();
+                    alert('Thresholds imported successfully!');
+                } catch (e) {
+                    alert('Invalid JSON format. Please check the input.');
+                }
+            });
+
+            elements.healthInput.addEventListener('focus', () => { isHealthFocused = true; });
+            elements.healthInput.addEventListener('blur', () => {
+                isHealthFocused = false;
+                lastHealth = parseFloat(elements.healthInput.value) || 0;
+                lastModifiedTime = new Date();
+                updateCalculations();
+            });
+            elements.strengthInput.addEventListener('focus', () => { isStrengthFocused = true; });
+            elements.strengthInput.addEventListener('blur', () => {
+                isStrengthFocused = false;
+                lastStrength = parseFloat(elements.strengthInput.value) || 0;
+                lastModifiedTime = new Date();
+                updateCalculations();
+            });
+
+            elements.healthInput.addEventListener('input', updateCalculations);
+            elements.strengthInput.addEventListener('input', updateCalculations);
+            elements.targetMonth.addEventListener('change', updateCalculations);
+            elements.targetDay.addEventListener('change', updateCalculations);
+            elements.targetYear.addEventListener('change', updateCalculations);
+            elements.targetHour.addEventListener('change', updateCalculations);
+            elements.targetMinute.addEventListener('change', updateCalculations);
+            elements.targetSecond.addEventListener('change', updateCalculations);
+            elements.targetAmPm.addEventListener('change', updateCalculations);
+            elements.additionalStrength.addEventListener('input', updateCalculations);
+            elements.starLevel.addEventListener('change', updateCalculations);
+        }
+
+        // Initialize application
+        function initialize() {
+            populateMushroomSelectors();
+            populateDatePicker();
+            populateThresholdTable();
+            setupCalcModeListeners();
+            setupEventListeners();
+            startHealthUpdateInterval();
+            updateCalculations();
+        }
+
+        initialize();
+    </script>
+</body>
+</html>
