@@ -12,4 +12,5 @@ Please disable SecureBoot in the BIOS. Then try again.
 
 
 sudo add-apt-repository ppa:yannubuntu/boot-repair && sudo apt update
+
 sudo apt install -y boot-repair && boot-repair
