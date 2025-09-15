@@ -4,11 +4,11 @@
 
 3. project-link is in readme in project directory (project has own repository)
 
-4. how to run and build project is explained in readme of project-repository (link)
+4. how to run and build project is explained in readme of project-repository  (https://github.com/saugkim/fullstack2025_LUT_project/blob/main/readme.md)
 
-5. video of project running in readme in project directory (in this repository)   
+6. video of project running in readme in project directory (in this repository)   
 
-6. course works(part 1 to 5) are in modules directory (in this repository)
+7. course works(part 1 to 5) are in modules directory (in this repository)
    
 
 
