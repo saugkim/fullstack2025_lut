@@ -15,11 +15,12 @@
 5. video of project running in readme in project directory (in this repository)   
 
 
-some courseworks in modules directory (in this repository)   
+6. some courseworks in modules directory (in this repository)   
 
 
 
-# fullstack2025_lut
+
+#### fullstack2025_lut
 repository for fullstack coursework
 
 https://bitbucket.org/2025coursework_lut/coursework/src/main/
