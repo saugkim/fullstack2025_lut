@@ -3,6 +3,10 @@ repository for fullstack coursework
 
 https://bitbucket.org/2025coursework_lut/coursework/src/main/
 
+==> bitbucket not used, decided to use github instead
+
+
+<br> 
 
 Chapter 3. ExpressJS
 
